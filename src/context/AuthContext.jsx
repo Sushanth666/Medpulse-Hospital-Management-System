@@ -35,7 +35,7 @@ const DEFAULT_USER = INITIAL_REGISTERED_USERS[0];
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('medpulse_auth_user');
-    return saved ? JSON.parse(saved) : DEFAULT_USER;
+    return saved ? JSON.parse(saved) : null;
   });
 
   const [registeredUsers, setRegisteredUsers] = useState(() => {
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const saved = localStorage.getItem('medpulse_auth_user');
-    return saved !== null;
+    return !!saved;
   });
 
   useEffect(() => {
