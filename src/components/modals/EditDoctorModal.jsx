@@ -29,8 +29,18 @@ export const EditDoctorModal = ({ isOpen, onClose, doctorToEdit = null }) => {
     if (doctorToEdit) {
       const docGen = doctorToEdit.gender || (doctorToEdit.avatar?.includes('/women/') ? 'Female' : 'Male');
       setFormData({
-        ...doctorToEdit,
-        gender: docGen
+        name: doctorToEdit.name || '',
+        gender: docGen,
+        specialization: doctorToEdit.specialization || 'Cardiology',
+        experience: doctorToEdit.experience || '5 Years',
+        phone: doctorToEdit.phone || '',
+        email: doctorToEdit.email || '',
+        workingHours: doctorToEdit.workingHours || '08:00 AM - 04:00 PM',
+        consultationFee: doctorToEdit.consultationFee || '$150',
+        status: doctorToEdit.status || 'On Duty',
+        rating: doctorToEdit.rating || 4.8,
+        totalPatients: doctorToEdit.totalPatients || 100,
+        avatar: doctorToEdit.avatar || ''
       });
     } else {
       setFormData({
@@ -45,13 +55,14 @@ export const EditDoctorModal = ({ isOpen, onClose, doctorToEdit = null }) => {
         status: 'On Duty'
       });
     }
+    setErrors({});
   }, [doctorToEdit, isOpen]);
 
   const validate = () => {
     const errs = {};
-    if (!formData.name.trim()) errs.name = 'Doctor name is required';
-    if (!formData.phone.trim()) errs.phone = 'Phone number is required';
-    if (!formData.email.trim()) errs.email = 'Email is required';
+    if (!formData.name || !formData.name.trim()) errs.name = 'Doctor name is required';
+    if (!formData.phone || !formData.phone.trim()) errs.phone = 'Phone number is required';
+    if (!formData.email || !formData.email.trim()) errs.email = 'Email is required';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };

@@ -31,9 +31,11 @@ export const Doctors = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [selectedDoctorId, setSelectedDoctorId] = useState(null);
   const [doctorToEdit, setDoctorToEdit] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const selectedDoctor = doctors.find(d => d.id === selectedDoctorId) || null;
 
   // Dynamic unique specializations list
   const specializations = Array.from(new Set(doctors.map(d => d.specialization))).sort();
@@ -57,6 +59,33 @@ export const Doctors = () => {
     setIsEditModalOpen(true);
   };
 
+  // Helper to generate weekly roster schedule
+  const getWeeklyRoster = (doc) => {
+    if (!doc) return [];
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const isOffDuty = doc.status === 'Off Duty';
+    const isOnCall = doc.status === 'On Call';
+
+    return days.map((day, idx) => {
+      if (isOffDuty && (idx === 5 || idx === 6 || idx === 0)) {
+        return { day, shift: 'Off Duty', time: 'Rest Day', location: 'N/A', status: 'off' };
+      }
+      if (isOnCall && (idx === 2 || idx === 5)) {
+        return { day, shift: 'On Call / Emergency', time: '24-Hour Cover', location: 'Emergency Trauma Care', status: 'call' };
+      }
+      if (idx === 6) {
+        return { day, shift: 'Off Duty', time: 'Rest Day', location: 'N/A', status: 'off' };
+      }
+      const shifts = [
+        { shift: 'Morning Shift', time: doc.workingHours || '08:00 AM - 04:00 PM', location: `${doc.specialization} OPD Wing` },
+        { shift: 'Evening Shift', time: '02:00 PM - 10:00 PM', location: 'Inpatient Ward 3B' },
+        { shift: 'Full Day Duty', time: '08:00 AM - 06:00 PM', location: 'Main Surgery Block' }
+      ];
+      const shiftInfo = shifts[idx % shifts.length];
+      return { day, ...shiftInfo, status: 'active' };
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -73,6 +102,7 @@ export const Doctors = () => {
           <div className="bg-slate-200 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1">
             <button
               onClick={() => setViewMode('grid')}
+              aria-label="Grid View"
               className={`p-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 viewMode === 'grid'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
@@ -83,6 +113,7 @@ export const Doctors = () => {
             </button>
             <button
               onClick={() => setViewMode('table')}
+              aria-label="Table View"
               className={`p-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 viewMode === 'table'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
@@ -128,11 +159,11 @@ export const Doctors = () => {
 
       {/* Grid View */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
           {filteredDoctors.map((doc) => (
             <div
               key={doc.id}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm card-hover-effect flex flex-col justify-between"
+              className="relative group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm card-hover-effect flex flex-col justify-between overflow-hidden"
             >
               <div>
                 <div className="flex items-start justify-between">
@@ -146,9 +177,9 @@ export const Doctors = () => {
                       }}
                       className="w-12 h-12 rounded-2xl object-cover border-2 border-orange-500/30 shadow-sm"
                     />
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{doc.name}</h4>
-                      <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold">{doc.specialization}</p>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{doc.name}</h4>
+                      <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold truncate">{doc.specialization}</p>
                     </div>
                   </div>
                   <Badge status={doc.status}>{doc.status}</Badge>
@@ -176,12 +207,16 @@ export const Doctors = () => {
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+              <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 relative z-10">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1"
-                  onClick={() => setSelectedDoctor(doc)}
+                  icon={Calendar}
+                  className="flex-1 whitespace-nowrap"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedDoctorId(doc.id);
+                  }}
                 >
                   View Roster
                 </Button>
@@ -189,7 +224,12 @@ export const Doctors = () => {
                   variant="ghost"
                   size="sm"
                   icon={Edit}
-                  onClick={() => handleEdit(doc)}
+                  title="Edit Doctor Details"
+                  aria-label="Edit Doctor"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(doc);
+                  }}
                 />
               </div>
             </div>
@@ -197,7 +237,7 @@ export const Doctors = () => {
         </div>
       ) : (
         /* Table View */
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
@@ -212,7 +252,7 @@ export const Doctors = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredDoctors.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <tr key={doc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="p-3 flex items-center gap-3">
                       <img
                         src={doc.avatar || getDoctorAvatar(doc.name, '2563eb')}
@@ -233,8 +273,28 @@ export const Doctors = () => {
                     <td className="p-3 text-slate-500">{doc.workingHours}</td>
                     <td className="p-3 font-bold text-teal-600">{doc.consultationFee}</td>
                     <td className="p-3 text-right space-x-1">
-                      <Button variant="ghost" size="sm" icon={Calendar} onClick={() => setSelectedDoctor(doc)} />
-                      <Button variant="ghost" size="sm" icon={Edit} onClick={() => handleEdit(doc)} />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Calendar}
+                        title="View Roster"
+                        aria-label="View Roster"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDoctorId(doc.id);
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Edit}
+                        title="Edit Doctor"
+                        aria-label="Edit Doctor"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(doc);
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -247,12 +307,12 @@ export const Doctors = () => {
       {/* Doctor Schedule Drawer */}
       <Drawer
         isOpen={!!selectedDoctor}
-        onClose={() => setSelectedDoctor(null)}
-        title={`Doctor Roster: ${selectedDoctor?.name}`}
+        onClose={() => setSelectedDoctorId(null)}
+        title={`Doctor Roster: ${selectedDoctor?.name || ''}`}
       >
         {selectedDoctor && (
           <div className="space-y-6">
-            <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl">
+            <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
               <img
                 src={selectedDoctor.avatar || getDoctorAvatar(selectedDoctor.name, '2563eb')}
                 alt={selectedDoctor.name}
@@ -260,28 +320,98 @@ export const Doctors = () => {
                   e.target.onerror = null;
                   e.target.src = getDoctorAvatar(selectedDoctor.name, '2563eb');
                 }}
-                className="w-16 h-16 rounded-2xl object-cover"
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-orange-500/40 shadow-sm"
               />
-              <div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-slate-100">{selectedDoctor.name}</h4>
-                <p className="text-xs text-blue-600 font-semibold">{selectedDoctor.specialization}</p>
-                <Badge status={selectedDoctor.status} className="mt-1">{selectedDoctor.status}</Badge>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate">{selectedDoctor.name}</h4>
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold">{selectedDoctor.specialization}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Badge status={selectedDoctor.status}>{selectedDoctor.status}</Badge>
+                  <span className="text-xs text-amber-500 font-semibold flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 fill-current" /> {selectedDoctor.rating}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
-              <p className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                <Clock className="w-4 h-4 text-blue-500" />
-                Working Hours: <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedDoctor.workingHours}</span>
+            {/* Quick Details Grid */}
+            <div className="grid grid-cols-1 gap-2 p-4 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900">
+              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-100 dark:border-slate-800">
+                <span className="flex items-center gap-2 text-slate-500">
+                  <Clock className="w-4 h-4 text-blue-500" /> Working Hours
+                </span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedDoctor.workingHours}</span>
               </p>
-              <p className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                <Phone className="w-4 h-4 text-teal-500" />
-                Phone: <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedDoctor.phone}</span>
+              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-100 dark:border-slate-800">
+                <span className="flex items-center gap-2 text-slate-500">
+                  <Phone className="w-4 h-4 text-teal-500" /> Phone
+                </span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedDoctor.phone}</span>
               </p>
-              <p className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                <Mail className="w-4 h-4 text-amber-500" />
-                Email: <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedDoctor.email}</span>
+              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1">
+                <span className="flex items-center gap-2 text-slate-500">
+                  <Mail className="w-4 h-4 text-amber-500" /> Email
+                </span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[180px]">{selectedDoctor.email}</span>
               </p>
+            </div>
+
+            {/* Weekly Shift Roster */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h5 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-orange-500" /> Weekly Duty Schedule
+                </h5>
+                <span className="text-[11px] text-slate-500 font-medium">Standard 40h / week</span>
+              </div>
+
+              <div className="space-y-2">
+                {getWeeklyRoster(selectedDoctor).map((item, i) => (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-xl border transition-colors flex items-center justify-between ${
+                      item.status === 'off'
+                        ? 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-800 opacity-60'
+                        : item.status === 'call'
+                        ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-orange-300'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{item.day}</span>
+                      <p className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 mt-0.5">{item.shift}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{item.location}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                        item.status === 'off'
+                          ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                          : item.status === 'call'
+                          ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                          : 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300'
+                      }`}>
+                        {item.time}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Action Footer in Drawer */}
+            <div className="pt-2 flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Edit}
+                className="flex-1"
+                onClick={() => {
+                  handleEdit(selectedDoctor);
+                  setSelectedDoctorId(null);
+                }}
+              >
+                Edit Profile
+              </Button>
             </div>
           </div>
         )}

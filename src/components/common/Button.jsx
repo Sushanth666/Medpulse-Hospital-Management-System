@@ -14,6 +14,12 @@ const sizes = {
   lg: 'px-5 py-3 text-base font-semibold rounded-xl min-h-[48px]'
 };
 
+const iconOnlySizes = {
+  sm: 'min-w-[36px] min-h-[36px] p-2',
+  md: 'min-w-[44px] min-h-[44px] p-2.5',
+  lg: 'min-w-[48px] min-h-[48px] p-3'
+};
+
 export const Button = ({
   children,
   variant = 'primary',
@@ -24,19 +30,19 @@ export const Button = ({
   disabled = false,
   ...props
 }) => {
-  // Icon-only ghost buttons need extra touch area on mobile
+  // Icon-only ghost buttons need matching touch area for size
   const isIconOnly = Icon && !children;
 
   return (
     <button
       disabled={disabled || isLoading}
-      className={`group inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation select-none ${variants[variant]} ${sizes[size]} ${isIconOnly ? 'min-w-[44px] min-h-[44px] p-2.5' : ''} ${className}`}
+      className={`group inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation select-none ${variants[variant]} ${sizes[size]} ${isIconOnly ? iconOnlySizes[size] || iconOnlySizes.md : ''} ${className}`}
       {...props}
     >
       {isLoading ? (
         <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
       ) : Icon ? (
-        <Icon className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-115 group-hover:rotate-6" />
+        <Icon className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
       ) : null}
       {children}
     </button>
