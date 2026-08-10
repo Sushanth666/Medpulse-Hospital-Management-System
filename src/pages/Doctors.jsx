@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useHospital } from '../context/HospitalContext';
+import { useToast } from '../context/ToastContext';
 import { getDoctorAvatar } from '../data/mockData';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -22,11 +23,14 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-  ShieldCheck
+  ShieldCheck,
+  CheckCircle,
+  X
 } from 'lucide-react';
 
 export const Doctors = () => {
-  const { doctors } = useHospital();
+  const { doctors, updateDoctor } = useHospital();
+  const { addToast } = useToast();
 
   const [search, setSearch] = useState('');
   const [specFilter, setSpecFilter] = useState('');
@@ -34,6 +38,9 @@ export const Doctors = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
   const [expandedDoctorId, setExpandedDoctorId] = useState(null);
+  const [editingInlineId, setEditingInlineId] = useState(null);
+  const [inlineForm, setInlineForm] = useState({});
+
   const [doctorToEdit, setDoctorToEdit] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -50,12 +57,28 @@ export const Doctors = () => {
   });
 
   const toggleExpand = (id) => {
-    setExpandedDoctorId(prev => (prev === id ? null : id));
+    if (expandedDoctorId === id) {
+      setExpandedDoctorId(null);
+      setEditingInlineId(null);
+    } else {
+      setExpandedDoctorId(id);
+      setEditingInlineId(null);
+    }
   };
 
-  const handleEdit = (doc) => {
-    setDoctorToEdit(doc);
-    setIsEditModalOpen(true);
+  const startInlineEdit = (doc) => {
+    setInlineForm({ ...doc });
+    setEditingInlineId(doc.id);
+  };
+
+  const handleSaveInline = (docId) => {
+    if (!inlineForm.name || !inlineForm.name.trim()) {
+      addToast('Doctor name is required', 'error');
+      return;
+    }
+    updateDoctor(docId, inlineForm);
+    addToast(`Updated profile for ${inlineForm.name}`, 'success');
+    setEditingInlineId(null);
   };
 
   const handleAddNew = () => {
@@ -139,6 +162,8 @@ export const Doctors = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 items-start">
           {filteredDoctors.map((doc) => {
             const isExpanded = expandedDoctorId === doc.id;
+            const isEditing = editingInlineId === doc.id;
+
             return (
               <div
                 key={doc.id}
@@ -190,65 +215,186 @@ export const Doctors = () => {
 
                 {/* Dropdown Details Card Panel */}
                 {isExpanded && (
-                  <div className="mt-4 pt-4 border-t border-orange-500/20 bg-orange-50/50 dark:bg-slate-800/70 -mx-4 -mb-4 sm:-mx-5 sm:-mb-5 p-4 rounded-b-2xl space-y-3 animate-fade-in">
-                    <h5 className="text-xs font-extrabold text-orange-600 dark:text-orange-400 flex items-center gap-1.5 uppercase tracking-wider">
-                      <Info className="w-3.5 h-3.5" /> Doctor Full Profile
-                    </h5>
+                  <div className="mt-4 pt-4 border-t border-orange-500/20 bg-orange-50/50 dark:bg-slate-800/70 -mx-4 -mb-4 sm:-mx-5 sm:-mb-5 p-4 rounded-b-2xl space-y-3.5 animate-fade-in">
+                    {isEditing ? (
+                      /* INLINE EDIT MODE FORM */
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-xs font-extrabold text-orange-600 dark:text-orange-400 flex items-center gap-1.5 uppercase tracking-wider">
+                            <Edit className="w-3.5 h-3.5" /> Edit Doctor Information
+                          </h5>
+                        </div>
 
-                    <div className="space-y-2 text-xs">
-                      <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-200/60 dark:border-slate-700/60 flex-wrap gap-1">
-                        <span className="flex items-center gap-1.5 text-slate-500 font-medium">
-                          <Clock className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" /> Working Hours
-                        </span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">{doc.workingHours}</span>
-                      </p>
+                        <div className="space-y-2 text-xs">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Doctor Name *</label>
+                            <input
+                              type="text"
+                              value={inlineForm.name || ''}
+                              onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })}
+                              className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-slate-900 dark:text-slate-100"
+                            />
+                          </div>
 
-                      <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-200/60 dark:border-slate-700/60 flex-wrap gap-1">
-                        <span className="flex items-center gap-1.5 text-slate-500 font-medium">
-                          <Phone className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" /> Phone Number
-                        </span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">{doc.phone}</span>
-                      </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Specialization</label>
+                              <select
+                                value={inlineForm.specialization || ''}
+                                onChange={(e) => setInlineForm({ ...inlineForm, specialization: e.target.value })}
+                                className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-slate-900 dark:text-slate-100"
+                              >
+                                {specializations.map(s => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Duty Status</label>
+                              <select
+                                value={inlineForm.status || ''}
+                                onChange={(e) => setInlineForm({ ...inlineForm, status: e.target.value })}
+                                className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-slate-900 dark:text-slate-100"
+                              >
+                                <option value="On Duty">On Duty</option>
+                                <option value="On Call">On Call</option>
+                                <option value="Off Duty">Off Duty</option>
+                              </select>
+                            </div>
+                          </div>
 
-                      <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-200/60 dark:border-slate-700/60 flex-wrap gap-1">
-                        <span className="flex items-center gap-1.5 text-slate-500 font-medium">
-                          <Mail className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /> Email Address
-                        </span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100 truncate max-w-[170px]">{doc.email}</span>
-                      </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
+                              <input
+                                type="text"
+                                value={inlineForm.phone || ''}
+                                onChange={(e) => setInlineForm({ ...inlineForm, phone: e.target.value })}
+                                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-slate-900 dark:text-slate-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+                              <input
+                                type="email"
+                                value={inlineForm.email || ''}
+                                onChange={(e) => setInlineForm({ ...inlineForm, email: e.target.value })}
+                                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-slate-900 dark:text-slate-100"
+                              />
+                            </div>
+                          </div>
 
-                      <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 flex-wrap gap-1">
-                        <span className="flex items-center gap-1.5 text-slate-500 font-medium">
-                          <ShieldCheck className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" /> Department
-                        </span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">{doc.specialization} OPD</span>
-                      </p>
-                    </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Working Hours</label>
+                              <input
+                                type="text"
+                                value={inlineForm.workingHours || ''}
+                                onChange={(e) => setInlineForm({ ...inlineForm, workingHours: e.target.value })}
+                                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-slate-900 dark:text-slate-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Fee</label>
+                              <input
+                                type="text"
+                                value={inlineForm.consultationFee || ''}
+                                onChange={(e) => setInlineForm({ ...inlineForm, consultationFee: e.target.value })}
+                                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-slate-900 dark:text-slate-100"
+                              />
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="pt-2 flex items-center gap-2">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        icon={Edit}
-                        className="w-full text-xs min-h-[36px]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(doc);
-                        }}
-                      >
-                        Edit Full Profile
-                      </Button>
-                    </div>
+                        {/* SAVE & CANCEL BUTTONS */}
+                        <div className="pt-2 flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={X}
+                            className="flex-1 text-xs min-h-[36px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingInlineId(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={CheckCircle}
+                            className="flex-1 text-xs min-h-[36px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSaveInline(doc.id);
+                            }}
+                          >
+                            Save Changes
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* VIEW PROFILE MODE */
+                      <>
+                        <h5 className="text-xs font-extrabold text-orange-600 dark:text-orange-400 flex items-center gap-1.5 uppercase tracking-wider">
+                          <Info className="w-3.5 h-3.5" /> Doctor Full Profile
+                        </h5>
+
+                        <div className="space-y-2 text-xs">
+                          <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-200/60 dark:border-slate-700/60 flex-wrap gap-1">
+                            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                              <Clock className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" /> Working Hours
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-slate-100">{doc.workingHours}</span>
+                          </p>
+
+                          <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-200/60 dark:border-slate-700/60 flex-wrap gap-1">
+                            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                              <Phone className="w-3.5 h-3.5 text-teal-500 flex-shrink-0" /> Phone Number
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-slate-100">{doc.phone}</span>
+                          </p>
+
+                          <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-200/60 dark:border-slate-700/60 flex-wrap gap-1">
+                            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                              <Mail className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /> Email Address
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-slate-100 truncate max-w-[170px]">{doc.email}</span>
+                          </p>
+
+                          <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 flex-wrap gap-1">
+                            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                              <ShieldCheck className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" /> Department
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-slate-100">{doc.specialization} OPD</span>
+                          </p>
+                        </div>
+
+                        <div className="pt-2 flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={Edit}
+                            className="w-full text-xs min-h-[36px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startInlineEdit(doc);
+                            }}
+                          >
+                            Edit Doctor Details
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
-                {/* Dropdown Toggle Button */}
+                {/* SINGLE CLEAN CARD FOOTER BUTTON */}
                 <div className="mt-4 sm:mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 relative z-10">
                   <Button
                     variant={isExpanded ? "primary" : "outline"}
                     size="sm"
                     icon={isExpanded ? ChevronUp : ChevronDown}
-                    className="flex-1 whitespace-nowrap text-xs py-2 px-2.5 sm:px-3 min-h-[38px]"
+                    className="w-full text-xs py-2 px-3 min-h-[38px]"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleExpand(doc.id);
@@ -256,18 +402,6 @@ export const Doctors = () => {
                   >
                     {isExpanded ? 'Hide Details' : 'Doctor Details'}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={Edit}
-                    title="Edit Doctor Details"
-                    aria-label="Edit Doctor"
-                    className="min-h-[38px] min-w-[38px]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(doc);
-                    }}
-                  />
                 </div>
               </div>
             );
@@ -291,6 +425,8 @@ export const Doctors = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredDoctors.map((doc) => {
                   const isExpanded = expandedDoctorId === doc.id;
+                  const isEditing = editingInlineId === doc.id;
+
                   return (
                     <React.Fragment key={doc.id}>
                       <tr className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isExpanded ? 'bg-orange-50/40 dark:bg-slate-800/40' : ''}`}>
@@ -313,52 +449,81 @@ export const Doctors = () => {
                         <td className="p-3"><Badge status={doc.status}>{doc.status}</Badge></td>
                         <td className="p-3 text-slate-500">{doc.workingHours}</td>
                         <td className="p-3 font-bold text-teal-600">{doc.consultationFee}</td>
-                        <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                        <td className="p-3 text-right whitespace-nowrap">
                           <Button
-                            variant={isExpanded ? "primary" : "ghost"}
+                            variant={isExpanded ? "primary" : "outline"}
                             size="sm"
                             icon={isExpanded ? ChevronUp : ChevronDown}
-                            title={isExpanded ? "Hide Details" : "View Doctor Details"}
-                            aria-label="View Doctor Details"
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleExpand(doc.id);
                             }}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            icon={Edit}
-                            title="Edit Doctor"
-                            aria-label="Edit Doctor"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(doc);
-                            }}
-                          />
+                          >
+                            {isExpanded ? 'Hide' : 'Details'}
+                          </Button>
                         </td>
                       </tr>
                       {/* Table View Collapsible Details Row */}
                       {isExpanded && (
                         <tr className="bg-orange-50/40 dark:bg-slate-800/30">
                           <td colSpan={6} className="p-4 border-b border-orange-500/20 dark:border-slate-800">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                              <div>
-                                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Contact Info</span>
-                                <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">{doc.phone}</p>
-                                <p className="text-slate-500">{doc.email}</p>
+                            {isEditing ? (
+                              <div className="space-y-3">
+                                <h5 className="text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5 uppercase">
+                                  <Edit className="w-3.5 h-3.5" /> Edit Doctor Details
+                                </h5>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                                  <input
+                                    type="text"
+                                    placeholder="Doctor Name"
+                                    value={inlineForm.name || ''}
+                                    onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })}
+                                    className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Phone"
+                                    value={inlineForm.phone || ''}
+                                    onChange={(e) => setInlineForm({ ...inlineForm, phone: e.target.value })}
+                                    className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl"
+                                  />
+                                  <input
+                                    type="email"
+                                    placeholder="Email"
+                                    value={inlineForm.email || ''}
+                                    onChange={(e) => setInlineForm({ ...inlineForm, email: e.target.value })}
+                                    className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl"
+                                  />
+                                </div>
+                                <div className="flex justify-end gap-2 pt-1">
+                                  <Button variant="outline" size="sm" icon={X} onClick={() => setEditingInlineId(null)}>Cancel</Button>
+                                  <Button variant="primary" size="sm" icon={CheckCircle} onClick={() => handleSaveInline(doc.id)}>Save Changes</Button>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Working Schedule</span>
-                                <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">{doc.workingHours}</p>
-                                <p className="text-orange-600 font-semibold">{doc.specialization} Wing</p>
+                            ) : (
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
+                                  <div>
+                                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Contact Info</span>
+                                    <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">{doc.phone}</p>
+                                    <p className="text-slate-500">{doc.email}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Working Schedule</span>
+                                    <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">{doc.workingHours}</p>
+                                    <p className="text-orange-600 font-semibold">{doc.specialization} Wing</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Performance & Fee</span>
+                                    <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">{doc.experience} • {doc.rating} ★</p>
+                                    <p className="text-teal-600 font-bold">{doc.consultationFee}</p>
+                                  </div>
+                                </div>
+                                <Button variant="outline" size="sm" icon={Edit} onClick={() => startInlineEdit(doc)}>
+                                  Edit Details
+                                </Button>
                               </div>
-                              <div>
-                                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Performance & Fee</span>
-                                <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">{doc.experience} • {doc.rating} ★</p>
-                                <p className="text-teal-600 font-bold">{doc.consultationFee}</p>
-                              </div>
-                            </div>
+                            )}
                           </td>
                         </tr>
                       )}
