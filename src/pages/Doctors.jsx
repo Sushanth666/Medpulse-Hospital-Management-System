@@ -227,7 +227,7 @@ export const Doctors = () => {
 
                     <div className="pt-2 flex items-center gap-2">
                       <Button
-                        variant="outline"
+                        variant="primary"
                         size="sm"
                         icon={Edit}
                         className="w-full text-xs min-h-[36px]"
@@ -236,7 +236,7 @@ export const Doctors = () => {
                           handleEdit(doc);
                         }}
                       >
-                        Edit Details
+                        Edit Full Profile
                       </Button>
                     </div>
                   </div>
