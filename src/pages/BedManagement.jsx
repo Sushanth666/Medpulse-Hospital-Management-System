@@ -29,14 +29,13 @@ import {
 import { getDoctorAvatar } from '../data/mockData';
 
 export const BedManagement = () => {
-  const { beds, releaseBed, updateBedStatus } = useHospital();
+  const { beds, patients, assignBed, releaseBed, updateBedStatus } = useHospital();
   const { addToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWard, setSelectedWard] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [viewMode, setViewMode] = useState('blueprint'); // 'blueprint' | 'grid'
-  const [selectedBedToAssign, setSelectedBedToAssign] = useState(null);
 
   // Wards List
   const wards = ['All', ...Array.from(new Set(beds.map(b => b.ward)))];
@@ -61,6 +60,12 @@ export const BedManagement = () => {
   const icuBeds = beds.filter(b => b.ward === 'Intensive Care Unit');
   const icuOccupied = icuBeds.filter(b => b.status === 'Occupied').length;
   const occupancyRate = Math.round((occupiedBeds / totalBeds) * 100);
+
+  const handleConfirmAssign = (bedId, patientId, patientName) => {
+    assignBed(bedId, patientId, patientName);
+    const bedObj = beds.find(b => b.id === bedId);
+    addToast(`Bed ${bedObj?.bedNumber || bedId} allocated to ${patientName}!`, 'success');
+  };
 
   const handleRelease = (bed) => {
     if (window.confirm(`Release Bed ${bed.bedNumber} occupied by ${bed.patientName}?`)) {
@@ -249,24 +254,13 @@ export const BedManagement = () => {
               <Layers className="w-4.5 h-4.5" />
             </button>
             <button
-              onClick={() => setViewMode('kanban')}
-              className={`p-2 rounded-lg text-xs transition-all cursor-pointer ${
-                viewMode === 'kanban'
-                  ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-              title="Tactical Ward Kanban Columns"
-            >
-              <SlidersHorizontal className="w-4.5 h-4.5" />
-            </button>
-            <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-lg text-xs transition-all cursor-pointer ${
                 viewMode === 'grid'
                   ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
-              title="Grid Telemetry View"
+              title="Flat Grid View"
             >
               <Grid className="w-4.5 h-4.5" />
             </button>
@@ -274,61 +268,57 @@ export const BedManagement = () => {
         </div>
       </div>
 
-      {/* Mode 1: Blueprint Mode (Grouped Ward Wings) */}
+      {/* Mode 1: Ward Blueprint Architectural View */}
       {viewMode === 'blueprint' && (
         <div className="space-y-6">
-          {Object.entries(bedsByWard)
-            .filter(([wardName]) => selectedWard === 'All' || selectedWard === wardName)
-            .map(([wardName, wardBeds]) => {
+          {Object.keys(bedsByWard)
+            .filter(ward => selectedWard === 'All' || ward === selectedWard)
+            .map(wardName => {
+              const wardBeds = bedsByWard[wardName];
               const matchesFilter = wardBeds.filter(b => {
-                const matchesSt = selectedStatus === 'All' || b.status === selectedStatus;
-                const matchesQ =
+                const matchesStatus = selectedStatus === 'All' || b.status === selectedStatus;
+                const matchesSearch =
                   b.bedNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                   (b.patientName && b.patientName.toLowerCase().includes(searchQuery.toLowerCase()));
-                return matchesSt && matchesQ;
+                return matchesStatus && matchesSearch;
               });
 
-              if (matchesFilter.length === 0) return null;
+              if (matchesFilter.length === 0 && (selectedStatus !== 'All' || searchQuery)) return null;
 
               const wardOccupied = wardBeds.filter(b => b.status === 'Occupied').length;
-              const wardCapRate = Math.round((wardOccupied / wardBeds.length) * 100);
+              const wardPct = Math.round((wardOccupied / wardBeds.length) * 100);
 
               return (
                 <div
                   key={wardName}
-                  className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm"
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-8 rounded-full bg-teal-500" />
-                      <div>
-                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                          {wardName}
-                          <span className="text-xs font-normal text-slate-400">({wardBeds.length} Bed Pods)</span>
-                        </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Capacity Usage: <strong className="text-teal-600 dark:text-teal-400">{wardOccupied} / {wardBeds.length} Occupied</strong> ({wardCapRate}%)
-                        </p>
-                      </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block" />
+                        {wardName}
+                        <span className="text-xs text-slate-400 font-normal">({wardBeds.length} Bed Pods)</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Capacity Usage: <span className="font-bold text-teal-600 dark:text-teal-400">{wardOccupied} / {wardBeds.length} Occupied</span> ({wardPct}%)
+                      </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-32 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-300 ${
-                            wardCapRate > 80 ? 'bg-rose-500' : wardCapRate > 50 ? 'bg-amber-500' : 'bg-emerald-500'
-                          }`}
-                          style={{ width: `${wardCapRate}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{wardCapRate}%</span>
+                    <div className="w-full sm:w-48 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-teal-400 to-emerald-500"
+                        style={{ width: `${wardPct}%` }}
+                      />
                     </div>
                   </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
                     {matchesFilter.map((bed) => (
                       <BedPodCard
                         key={bed.id}
                         bed={bed}
-                        onAssign={() => setSelectedBedToAssign(bed)}
+                        patients={patients}
+                        onConfirmAssign={handleConfirmAssign}
                         onRelease={() => handleRelease(bed)}
                         onToggleMaintenance={() => handleToggleMaintenance(bed)}
                       />
@@ -340,98 +330,33 @@ export const BedManagement = () => {
         </div>
       )}
 
-      {/* Mode 2: Tactical Ward Kanban Columns */}
-      {viewMode === 'kanban' && (
-        <div className="flex gap-5 overflow-x-auto pb-6 pt-2 items-start custom-scrollbar">
-          {Object.entries(bedsByWard)
-            .filter(([wardName]) => selectedWard === 'All' || selectedWard === wardName)
-            .map(([wardName, wardBeds]) => {
-              const matchesFilter = wardBeds.filter(b => {
-                const matchesSt = selectedStatus === 'All' || b.status === selectedStatus;
-                const matchesQ =
-                  b.bedNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  (b.patientName && b.patientName.toLowerCase().includes(searchQuery.toLowerCase()));
-                return matchesSt && matchesQ;
-              });
-
-              const wardOccupied = wardBeds.filter(b => b.status === 'Occupied').length;
-              const wardCapRate = Math.round((wardOccupied / wardBeds.length) * 100);
-
-              return (
-                <div
-                  key={wardName}
-                  className="w-80 flex-shrink-0 p-4 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm flex flex-col max-h-[800px]"
-                >
-                  <div className="pb-2 border-b border-slate-200 dark:border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate max-w-[180px]">
-                        {wardName}
-                      </h4>
-                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
-                        {wardOccupied} / {wardBeds.length}
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                      <div
-                        className={`h-full transition-all ${
-                          wardCapRate > 80 ? 'bg-rose-500' : wardCapRate > 50 ? 'bg-amber-500' : 'bg-emerald-500'
-                        }`}
-                        style={{ width: `${wardCapRate}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3 overflow-y-auto pr-1 custom-scrollbar flex-1">
-                    {matchesFilter.map((bed) => (
-                      <BedPodCard
-                        key={bed.id}
-                        bed={bed}
-                        onAssign={() => setSelectedBedToAssign(bed)}
-                        onRelease={() => handleRelease(bed)}
-                        onToggleMaintenance={() => handleToggleMaintenance(bed)}
-                      />
-                    ))}
-                    {matchesFilter.length === 0 && (
-                      <div className="p-6 text-center text-xs text-slate-400 font-medium">
-                        No beds match filters in this ward
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      )}
-
-      {/* Mode 3: Flat Grid View */}
+      {/* Mode 2: Flat Grid View */}
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
           {filteredBeds.map((bed) => (
             <BedPodCard
               key={bed.id}
               bed={bed}
-              onAssign={() => setSelectedBedToAssign(bed)}
+              patients={patients}
+              onConfirmAssign={handleConfirmAssign}
               onRelease={() => handleRelease(bed)}
               onToggleMaintenance={() => handleToggleMaintenance(bed)}
             />
           ))}
         </div>
       )}
-
-      {/* Assign Bed Modal */}
-      <AssignBedModal
-        isOpen={!!selectedBedToAssign}
-        onClose={() => setSelectedBedToAssign(null)}
-        selectedBed={selectedBedToAssign}
-      />
     </div>
   );
 };
 
-// Reusable Visual Bed Pod Card Component
-const BedPodCard = ({ bed, onAssign, onRelease, onToggleMaintenance }) => {
+// Reusable Visual Bed Pod Card Component with Inline Allocation
+const BedPodCard = ({ bed, patients = [], onConfirmAssign, onRelease, onToggleMaintenance }) => {
   const isOccupied = bed.status === 'Occupied';
   const isAvailable = bed.status === 'Available';
   const isMaintenance = bed.status === 'Maintenance';
+
+  const [isAllocating, setIsAllocating] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState('');
 
   return (
     <div
@@ -524,15 +449,63 @@ const BedPodCard = ({ bed, onAssign, onRelease, onToggleMaintenance }) => {
         </div>
       </div>
 
+      {/* Inline Allocation Widget Container */}
+      {isAvailable && isAllocating && (
+        <div className="mt-3 p-3 rounded-2xl bg-orange-50/90 dark:bg-slate-800/90 border border-orange-500/30 space-y-2.5 animate-fade-in text-xs">
+          <label className="block text-[10px] font-extrabold text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+            Select Patient to Admit
+          </label>
+          <select
+            value={selectedPatientId}
+            onChange={(e) => setSelectedPatientId(e.target.value)}
+            className="w-full px-2.5 py-1.5 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-slate-900 dark:text-slate-100 cursor-pointer"
+          >
+            <option value="">-- Choose Patient --</option>
+            {patients.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({p.department})
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1.5 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAllocating(false);
+                setSelectedPatientId('');
+              }}
+              className="flex-1 py-1.5 px-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!selectedPatientId}
+              onClick={() => {
+                const p = patients.find(pat => pat.id === selectedPatientId);
+                if (p) {
+                  onConfirmAssign(bed.id, p.id, p.name);
+                  setIsAllocating(false);
+                  setSelectedPatientId('');
+                }
+              }}
+              className="flex-1 py-1.5 px-2 text-[11px] font-bold text-white bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-xs hover:from-orange-600 hover:to-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Pod Action Button */}
       <div className="mt-4 pt-3 border-t border-slate-200/80 dark:border-slate-800/80">
-        {isAvailable && (
+        {isAvailable && !isAllocating && (
           <Button
             variant="primary"
             size="sm"
             icon={UserPlus}
             className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-xs py-2 rounded-xl shadow-md shadow-orange-500/30"
-            onClick={onAssign}
+            onClick={() => setIsAllocating(true)}
           >
             Allocate Patient
           </Button>
