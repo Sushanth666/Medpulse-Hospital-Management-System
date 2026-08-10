@@ -25,9 +25,15 @@ export const Drawer = ({ isOpen, onClose, title, children, stickyHeader, footer 
       currentScrollY = window.scrollY;
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
+      if (contentRef.current) {
+        contentRef.current.scrollTop = 0;
+      }
       checkScroll();
-      const timer1 = setTimeout(checkScroll, 100);
-      const timer2 = setTimeout(checkScroll, 400);
+      const timer1 = setTimeout(() => {
+        if (contentRef.current) contentRef.current.scrollTop = 0;
+        checkScroll();
+      }, 50);
+      const timer2 = setTimeout(checkScroll, 300);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
