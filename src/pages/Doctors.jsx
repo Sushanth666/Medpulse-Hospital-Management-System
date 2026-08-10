@@ -20,7 +20,8 @@ import {
   Edit,
   LayoutGrid,
   List,
-  Calendar
+  Calendar,
+  ChevronDown
 } from 'lucide-react';
 
 export const Doctors = () => {
@@ -363,7 +364,12 @@ export const Doctors = () => {
                 <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-orange-500" /> Weekly Duty Schedule
                 </h5>
-                <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">Standard 40h / week</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">Standard 40h / week</span>
+                  <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full border border-orange-500/20 flex items-center gap-0.5">
+                    Scroll Roster <ChevronDown className="w-3 h-3 animate-bounce" />
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-2">
