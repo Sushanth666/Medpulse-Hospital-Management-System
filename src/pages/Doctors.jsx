@@ -159,15 +159,15 @@ export const Doctors = () => {
 
       {/* Grid View */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredDoctors.map((doc) => (
             <div
               key={doc.id}
-              className="relative group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm card-hover-effect flex flex-col justify-between overflow-hidden"
+              className="relative group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm card-hover-effect hover:z-20 focus-within:z-20 flex flex-col justify-between"
             >
               <div>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                     <img
                       src={doc.avatar || getDoctorAvatar(doc.name, 'f97316')}
                       alt={doc.name}
@@ -175,17 +175,17 @@ export const Doctors = () => {
                         e.target.onerror = null;
                         e.target.src = getDoctorAvatar(doc.name, 'f97316');
                       }}
-                      className="w-12 h-12 rounded-2xl object-cover border-2 border-orange-500/30 shadow-sm"
+                      className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl object-cover border-2 border-orange-500/30 shadow-sm flex-shrink-0"
                     />
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{doc.name}</h4>
-                      <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold truncate">{doc.specialization}</p>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{doc.name}</h4>
+                      <p className="text-[11px] sm:text-xs text-orange-600 dark:text-orange-400 font-semibold truncate">{doc.specialization}</p>
                     </div>
                   </div>
-                  <Badge status={doc.status}>{doc.status}</Badge>
+                  <Badge status={doc.status} className="flex-shrink-0">{doc.status}</Badge>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                <div className="mt-3.5 sm:mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs text-slate-600 dark:text-slate-400">
                   <div className="flex items-center justify-between">
                     <span>Experience:</span>
                     <span className="font-semibold text-slate-900 dark:text-slate-200">{doc.experience}</span>
@@ -207,12 +207,12 @@ export const Doctors = () => {
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 relative z-10">
+              <div className="mt-4 sm:mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 relative z-10">
                 <Button
                   variant="outline"
                   size="sm"
                   icon={Calendar}
-                  className="flex-1 whitespace-nowrap"
+                  className="flex-1 whitespace-nowrap text-xs py-2 px-2.5 sm:px-3 min-h-[38px]"
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedDoctorId(doc.id);
@@ -226,6 +226,7 @@ export const Doctors = () => {
                   icon={Edit}
                   title="Edit Doctor Details"
                   aria-label="Edit Doctor"
+                  className="min-h-[38px] min-w-[38px]"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEdit(doc);
@@ -237,7 +238,7 @@ export const Doctors = () => {
         </div>
       ) : (
         /* Table View */
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
@@ -272,7 +273,7 @@ export const Doctors = () => {
                     <td className="p-3"><Badge status={doc.status}>{doc.status}</Badge></td>
                     <td className="p-3 text-slate-500">{doc.workingHours}</td>
                     <td className="p-3 font-bold text-teal-600">{doc.consultationFee}</td>
-                    <td className="p-3 text-right space-x-1">
+                    <td className="p-3 text-right space-x-1 whitespace-nowrap">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -311,8 +312,8 @@ export const Doctors = () => {
         title={`Doctor Roster: ${selectedDoctor?.name || ''}`}
       >
         {selectedDoctor && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+          <div className="space-y-5 sm:space-y-6">
+            <div className="flex items-center gap-3.5 sm:gap-4 p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
               <img
                 src={selectedDoctor.avatar || getDoctorAvatar(selectedDoctor.name, '2563eb')}
                 alt={selectedDoctor.name}
@@ -320,12 +321,12 @@ export const Doctors = () => {
                   e.target.onerror = null;
                   e.target.src = getDoctorAvatar(selectedDoctor.name, '2563eb');
                 }}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-orange-500/40 shadow-sm"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-orange-500/40 shadow-sm flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
-                <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate">{selectedDoctor.name}</h4>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 truncate">{selectedDoctor.name}</h4>
                 <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold">{selectedDoctor.specialization}</p>
-                <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <Badge status={selectedDoctor.status}>{selectedDoctor.status}</Badge>
                   <span className="text-xs text-amber-500 font-semibold flex items-center gap-1">
                     <Star className="w-3.5 h-3.5 fill-current" /> {selectedDoctor.rating}
@@ -335,41 +336,41 @@ export const Doctors = () => {
             </div>
 
             {/* Quick Details Grid */}
-            <div className="grid grid-cols-1 gap-2 p-4 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900">
-              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-1 gap-2 p-3.5 sm:p-4 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900">
+              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-1">
                 <span className="flex items-center gap-2 text-slate-500">
-                  <Clock className="w-4 h-4 text-blue-500" /> Working Hours
+                  <Clock className="w-4 h-4 text-blue-500 flex-shrink-0" /> Working Hours
                 </span>
                 <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedDoctor.workingHours}</span>
               </p>
-              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-100 dark:border-slate-800">
+              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-1">
                 <span className="flex items-center gap-2 text-slate-500">
-                  <Phone className="w-4 h-4 text-teal-500" /> Phone
+                  <Phone className="w-4 h-4 text-teal-500 flex-shrink-0" /> Phone
                 </span>
                 <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedDoctor.phone}</span>
               </p>
-              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1">
+              <p className="flex items-center justify-between text-slate-700 dark:text-slate-300 py-1 flex-wrap gap-1">
                 <span className="flex items-center gap-2 text-slate-500">
-                  <Mail className="w-4 h-4 text-amber-500" /> Email
+                  <Mail className="w-4 h-4 text-amber-500 flex-shrink-0" /> Email
                 </span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[180px]">{selectedDoctor.email}</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[180px] sm:max-w-none">{selectedDoctor.email}</span>
               </p>
             </div>
 
             {/* Weekly Shift Roster */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h5 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+                <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-orange-500" /> Weekly Duty Schedule
                 </h5>
-                <span className="text-[11px] text-slate-500 font-medium">Standard 40h / week</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">Standard 40h / week</span>
               </div>
 
               <div className="space-y-2">
                 {getWeeklyRoster(selectedDoctor).map((item, i) => (
                   <div
                     key={i}
-                    className={`p-3 rounded-xl border transition-colors flex items-center justify-between ${
+                    className={`p-3 rounded-xl border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 ${
                       item.status === 'off'
                         ? 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-800 opacity-60'
                         : item.status === 'call'
@@ -382,8 +383,8 @@ export const Doctors = () => {
                       <p className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 mt-0.5">{item.shift}</p>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400">{item.location}</p>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                    <div className="self-start sm:self-auto">
+                      <span className={`text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full inline-block ${
                         item.status === 'off'
                           ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                           : item.status === 'call'

@@ -6,12 +6,17 @@ export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = 'ma
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) onClose();
     };
+    let currentScrollY = 0;
     if (isOpen) {
+      currentScrollY = window.scrollY;
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
       document.body.style.overflow = 'unset';
+      if (currentScrollY) {
+        window.scrollTo(0, currentScrollY);
+      }
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
