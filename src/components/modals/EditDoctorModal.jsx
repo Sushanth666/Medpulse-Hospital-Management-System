@@ -20,6 +20,7 @@ export const EditDoctorModal = ({ isOpen, onClose, doctorToEdit = null }) => {
     email: '',
     workingHours: '08:00 AM - 04:00 PM',
     consultationFee: '$150',
+    totalPatients: 100,
     status: 'On Duty'
   });
 
@@ -37,9 +38,9 @@ export const EditDoctorModal = ({ isOpen, onClose, doctorToEdit = null }) => {
         email: doctorToEdit.email || '',
         workingHours: doctorToEdit.workingHours || '08:00 AM - 04:00 PM',
         consultationFee: doctorToEdit.consultationFee || '$150',
+        totalPatients: doctorToEdit.totalPatients || 100,
         status: doctorToEdit.status || 'On Duty',
         rating: doctorToEdit.rating || 4.8,
-        totalPatients: doctorToEdit.totalPatients || 100,
         avatar: doctorToEdit.avatar || ''
       });
     } else {
@@ -52,6 +53,7 @@ export const EditDoctorModal = ({ isOpen, onClose, doctorToEdit = null }) => {
         email: '',
         workingHours: '08:00 AM - 04:00 PM',
         consultationFee: '$150',
+        totalPatients: 100,
         status: 'On Duty'
       });
     }
@@ -160,6 +162,14 @@ export const EditDoctorModal = ({ isOpen, onClose, doctorToEdit = null }) => {
           placeholder="$150"
           value={formData.consultationFee}
           onChange={(e) => setFormData({ ...formData, consultationFee: e.target.value })}
+        />
+
+        <Input
+          label="Total Patients"
+          type="number"
+          placeholder="100"
+          value={formData.totalPatients}
+          onChange={(e) => setFormData({ ...formData, totalPatients: e.target.value })}
         />
       </form>
     </Modal>
